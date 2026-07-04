@@ -2,18 +2,7 @@
 
 import httpx
 from typing import Optional, Callable
-from .models import RepoTree, TreeEntry
-
-
-# Within-process memo: once we've discovered that the GitHub API has
-# rate-limited this IP, subsequent calls skip straight to the auth fallback
-_rate_limited_this_session = False
-
-
-def reset_rate_limit_state():
-    """Reset rate limit state. For testing purposes only."""
-    global _rate_limited_this_session
-    _rate_limited_this_session = False
+from ...models import RepoTree, TreeEntry
 
 
 async def _fetch_tree_branch(
@@ -93,21 +82,7 @@ async def fetch_repo_tree(
     Returns:
         RepoTree if successful, None otherwise
     """
-    global _rate_limited_this_session
-    
     branches = [ref] if ref else ["HEAD", "main", "master"]
-    
-    # Fast path: once we've seen a rate limit in this process, don't bother
-    # retrying unauth on subsequent calls. Go straight to auth.
-    if _rate_limited_this_session and get_token:
-        token = get_token()
-        if not token:
-            return None
-        for branch in branches:
-            tree, _ = await _fetch_tree_branch(owner_repo, branch, token)
-            if tree:
-                return tree
-        return None
     
     # First pass: unauthenticated
     rate_limited = False
@@ -124,7 +99,6 @@ async def fetch_repo_tree(
         return None
     
     # Lazy fallback: rate limit hit and a token resolver was provided
-    _rate_limited_this_session = True
     token = get_token()
     if not token:
         return None
