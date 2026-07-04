@@ -5,7 +5,16 @@ description = "A Python package for scanning and downloading agent skills from s
 readme = "README.md"
 authors = [{ name = "BHznJNs", email = "bhznjns@outlook.com" }]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.1",
+    "python-frontmatter>=1.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.25.2",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.28,<0.12.0"]
