@@ -15,28 +15,21 @@ class Skill:
 
 
 @dataclass
+class ScanResult:
+    """Represents a discovered skill candidate from tree scanning."""
+    repo_path: str
+
+
+@dataclass
 class TreeEntry:
-    """Represents a single entry in a GitHub tree."""
+    """Represents a single entry in a provider-neutral repository tree."""
     path: str
-    type: str  # "blob" or "tree"
-    sha: str
+    kind: str  # "file" or "directory"
     size: Optional[int] = None
 
 
 @dataclass
-class RepoTree:
-    """Represents a GitHub repository tree."""
-    sha: str
-    branch: str
-    tree: list[TreeEntry]
-
-
-@dataclass
-class ParsedSource:
-    """Represents a parsed source input."""
-    type: str  # "github", "gitlab", "git", "local"
-    url: str
-    owner_repo: str  # e.g., "vercel-labs/agent-skills"
-    ref: Optional[str] = None
-    subpath: Optional[str] = None
-    skill_filter: Optional[str] = None
+class Tree:
+    """Represents a provider-neutral repository tree."""
+    ref: str
+    entries: list[TreeEntry]
