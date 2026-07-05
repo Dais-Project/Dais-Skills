@@ -8,7 +8,7 @@ from dais_skills.public.github import (
     GitHubBlob,
     GitHubClient,
     GitHubError,
-    parse_github_repo_url,
+    GitHubRepo,
 )
 
 from .exceptions import ScannerError
@@ -60,7 +60,7 @@ class GitHubScanner:
         self._github = GitHubClient(client)
 
     async def scan_repo(self, repo_url: str) -> list[ScannedSkill]:
-        repo = parse_github_repo_url(repo_url)
+        repo = GitHubRepo.from_url(repo_url)
         try:
             tree_ref, blobs = await self._github.fetch_tree(repo)
         except GitHubError as exc:

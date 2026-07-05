@@ -9,7 +9,6 @@ from dais_skills.public.github import (
     GitHubClient,
     GitHubError,
     GitHubRepo,
-    parse_github_repo_url,
 )
 
 from .exceptions import DownloaderError
@@ -31,7 +30,7 @@ class GitHubDownloader:
         self._github = GitHubClient(client)
 
     async def download_skill_zip(self, repo_url: str, skill_path: str) -> bytes:
-        repo = parse_github_repo_url(repo_url)
+        repo = GitHubRepo.from_url(repo_url)
         skill_dir = normalize_skill_path(skill_path)
         try:
             tree_ref, blobs = await self._github.fetch_tree(repo)
@@ -76,5 +75,4 @@ __all__ = [
     "GitHubRepo",
     "filter_skill_blobs",
     "normalize_skill_path",
-    "parse_github_repo_url",
 ]

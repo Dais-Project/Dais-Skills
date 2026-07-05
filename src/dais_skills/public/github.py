@@ -1,15 +1,15 @@
+import httpx
 from dataclasses import dataclass
 from urllib.parse import urlparse
-
-import httpx
-
-from dais_skills.public.exceptions import GitHubError
+from dais_skills.exception import SkillException
 
 
 API_BASE_URL = "https://api.github.com"
 RAW_BASE_URL = "https://raw.githubusercontent.com"
 USER_AGENT = "dais-skills"
 
+class GitHubError(SkillException):
+    pass
 
 @dataclass(frozen=True)
 class GitHubRepo:
@@ -21,30 +21,30 @@ class GitHubRepo:
     def owner_repo(self) -> str:
         return f"{self.owner}/{self.repo}"
 
+    @classmethod
+    def from_url(cls, repo_url: str) -> "GitHubRepo":
+        parsed = urlparse(repo_url.strip())
+        if parsed.scheme not in {"http", "https"} or parsed.hostname != "github.com":
+            raise GitHubError(f"Unsupported GitHub repository URL: {repo_url}")
+
+        parts = [part for part in parsed.path.split("/") if part]
+        if len(parts) < 2:
+            raise GitHubError(f"Unsupported GitHub repository URL: {repo_url}")
+
+        owner = parts[0]
+        repo = parts[1].removesuffix(".git")
+
+        ref = None
+        if len(parts) >= 4 and parts[2] == "tree":
+            ref = "/".join(parts[3:])
+
+        return cls(owner=owner, repo=repo, ref=ref)
+
 
 @dataclass(frozen=True)
 class GitHubBlob:
     path: str
     size: int | None = None
-
-
-def parse_github_repo_url(repo_url: str) -> GitHubRepo:
-    parsed = urlparse(repo_url.strip())
-    if parsed.scheme not in {"http", "https"} or parsed.hostname != "github.com":
-        raise GitHubError(f"Unsupported GitHub repository URL: {repo_url}")
-
-    parts = [part for part in parsed.path.split("/") if part]
-    if len(parts) < 2:
-        raise GitHubError(f"Unsupported GitHub repository URL: {repo_url}")
-
-    owner = parts[0]
-    repo = parts[1].removesuffix(".git")
-
-    ref = None
-    if len(parts) >= 4 and parts[2] == "tree":
-        ref = "/".join(parts[3:])
-
-    return GitHubRepo(owner=owner, repo=repo, ref=ref)
 
 
 class GitHubClient:
@@ -113,5 +113,4 @@ __all__ = [
     "GitHubRepo",
     "GitHubBlob",
     "GitHubClient",
-    "parse_github_repo_url",
 ]

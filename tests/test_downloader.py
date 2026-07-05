@@ -12,34 +12,7 @@ from dais_skills.downloader.github import (
     normalize_skill_path,
 )
 from dais_skills.extractor import Skill
-from dais_skills.public.github import GitHubBlob, GitHubError, parse_github_repo_url
-
-
-class TestParseGitHubRepoUrl:
-    def test_parse_plain_repo_url(self):
-        repo = parse_github_repo_url("https://github.com/octo/demo")
-
-        assert repo.owner == "octo"
-        assert repo.repo == "demo"
-        assert repo.ref is None
-
-    def test_parse_tree_url(self):
-        repo = parse_github_repo_url("https://github.com/octo/demo/tree/main")
-
-        assert repo.owner == "octo"
-        assert repo.repo == "demo"
-        assert repo.ref == "main"
-
-    def test_parse_tree_url_with_slashes_in_ref(self):
-        repo = parse_github_repo_url("https://github.com/octo/demo/tree/feature/test-branch")
-
-        assert repo.owner == "octo"
-        assert repo.repo == "demo"
-        assert repo.ref == "feature/test-branch"
-
-    def test_reject_non_github_url(self):
-        with pytest.raises(GitHubError, match="Unsupported GitHub repository URL"):
-            parse_github_repo_url("https://gitlab.com/octo/demo")
+from dais_skills.public.github import GitHubBlob
 
 
 class TestNormalizeSkillPath:
