@@ -1,0 +1,120 @@
+from dataclasses import dataclass
+from urllib.parse import urlparse
+
+import httpx
+
+
+API_BASE_URL = "https://api.github.com"
+RAW_BASE_URL = "https://raw.githubusercontent.com"
+USER_AGENT = "dais-skills"
+
+
+class GitHubError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class GitHubRepo:
+    owner: str
+    repo: str
+    ref: str | None = None
+
+    @property
+    def owner_repo(self) -> str:
+        return f"{self.owner}/{self.repo}"
+
+
+@dataclass(frozen=True)
+class GitHubBlob:
+    path: str
+    size: int | None = None
+
+
+def parse_github_repo_url(repo_url: str) -> GitHubRepo:
+    parsed = urlparse(repo_url.strip())
+    if parsed.scheme not in {"http", "https"} or parsed.hostname != "github.com":
+        raise GitHubError(f"Unsupported GitHub repository URL: {repo_url}")
+
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) < 2:
+        raise GitHubError(f"Unsupported GitHub repository URL: {repo_url}")
+
+    owner = parts[0]
+    repo = parts[1].removesuffix(".git")
+
+    ref = None
+    if len(parts) >= 4 and parts[2] == "tree":
+        ref = "/".join(parts[3:])
+
+    return GitHubRepo(owner=owner, repo=repo, ref=ref)
+
+
+class GitHubClient:
+    """Thin async wrapper around GitHub's tree and raw endpoints."""
+
+    def __init__(self, client: httpx.AsyncClient):
+        self._client = client
+
+    async def fetch_tree(self, repo: GitHubRepo) -> tuple[str, list[GitHubBlob]]:
+        refs_to_try = [repo.ref] if repo.ref else ["main", "master"]
+        last_error: GitHubError | None = None
+
+        for tree_ref in refs_to_try:
+            try:
+                tree = await self._get_json(
+                    f"/repos/{repo.owner_repo}/git/trees/{tree_ref}?recursive=1"
+                )
+            except GitHubError as exc:
+                last_error = exc
+                continue
+
+            blobs = [
+                GitHubBlob(path=entry["path"], size=entry.get("size"))
+                for entry in tree.get("tree", [])
+                if entry.get("type") == "blob" and isinstance(entry.get("path"), str)
+            ]
+            return tree_ref, blobs
+
+        if last_error is not None:
+            raise last_error
+        raise GitHubError(f"Unable to fetch repository tree for {repo.owner_repo}")
+
+    async def fetch_blob(self, repo: GitHubRepo, ref: str, path: str) -> bytes:
+        url = f"{RAW_BASE_URL}/{repo.owner}/{repo.repo}/{ref}/{path}"
+        response = await self._client.get(url, headers={"User-Agent": USER_AGENT})
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise GitHubError(
+                f"Failed to download file {path}: HTTP {exc.response.status_code}"
+            ) from exc
+        return response.content
+
+    async def fetch_text(self, repo: GitHubRepo, ref: str, path: str) -> str:
+        content = await self.fetch_blob(repo, ref, path)
+        return content.decode("utf-8", errors="replace")
+
+    async def _get_json(self, path: str) -> dict:
+        response = await self._client.get(
+            f"{API_BASE_URL}{path}",
+            headers={
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": USER_AGENT,
+            },
+        )
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise GitHubError(
+                f"GitHub API request failed: HTTP {exc.response.status_code}"
+            ) from exc
+        return response.json()
+
+
+__all__ = [
+    "GitHubError",
+    "GitHubRepo",
+    "GitHubBlob",
+    "GitHubClient",
+    "parse_github_repo_url",
+]

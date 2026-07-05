@@ -7,13 +7,12 @@ import pytest
 from dais_skills.downloader import download_skill_zip
 from dais_skills.downloader.github import (
     DownloaderError,
-    GitHubBlob,
     GitHubDownloader,
     filter_skill_blobs,
     normalize_skill_path,
-    parse_github_repo_url,
 )
 from dais_skills.extractor import Skill
+from dais_skills.public.github import GitHubBlob, GitHubError, parse_github_repo_url
 
 
 class TestParseGitHubRepoUrl:
@@ -39,7 +38,7 @@ class TestParseGitHubRepoUrl:
         assert repo.ref == "feature/test-branch"
 
     def test_reject_non_github_url(self):
-        with pytest.raises(DownloaderError, match="Unsupported GitHub repository URL"):
+        with pytest.raises(GitHubError, match="Unsupported GitHub repository URL"):
             parse_github_repo_url("https://gitlab.com/octo/demo")
 
 
