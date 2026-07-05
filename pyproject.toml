@@ -8,6 +8,7 @@ requires-python = ">=3.14"
 dependencies = [
     "httpx>=0.28.1",
     "python-frontmatter>=1.1.0",
+    "binaryornot>=0.6.0",
 ]
 
 [dependency-groups]
