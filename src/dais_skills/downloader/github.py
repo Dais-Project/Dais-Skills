@@ -12,9 +12,7 @@ from dais_skills.public.github import (
     parse_github_repo_url,
 )
 
-
-class DownloaderError(Exception):
-    pass
+from .exceptions import DownloaderError
 
 
 def normalize_skill_path(skill_path: str) -> str:

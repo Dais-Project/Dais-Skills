@@ -1,4 +1,7 @@
-class ExtractorException(Exception): ...
+from dais_skills.exception import SkillException
+
+
+class ExtractorException(SkillException): ...
 
 
 class InvalidSkillArchiveError(ExtractorException):

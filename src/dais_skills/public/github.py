@@ -3,14 +3,12 @@ from urllib.parse import urlparse
 
 import httpx
 
+from dais_skills.public.exceptions import GitHubError
+
 
 API_BASE_URL = "https://api.github.com"
 RAW_BASE_URL = "https://raw.githubusercontent.com"
 USER_AGENT = "dais-skills"
-
-
-class GitHubError(Exception):
-    pass
 
 
 @dataclass(frozen=True)
@@ -112,7 +110,6 @@ class GitHubClient:
 
 
 __all__ = [
-    "GitHubError",
     "GitHubRepo",
     "GitHubBlob",
     "GitHubClient",

@@ -1,6 +1,7 @@
 import httpx
 
-from .github import GitHubScanner, ScannedSkill, ScannerError
+from .exceptions import ScannerError
+from .github import GitHubScanner, ScannedSkill
 
 
 async def scan_repo(repo_url: str) -> list[ScannedSkill]:

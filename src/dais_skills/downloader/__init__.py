@@ -1,5 +1,6 @@
 import httpx
-from .github import DownloaderError, GitHubDownloader
+from .exceptions import DownloaderError
+from .github import GitHubDownloader
 
 
 async def download_skill_zip(repo_url: str, skill_path: str) -> bytes:

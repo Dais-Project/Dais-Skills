@@ -11,9 +11,7 @@ from dais_skills.public.github import (
     parse_github_repo_url,
 )
 
-
-class ScannerError(Exception):
-    pass
+from .exceptions import ScannerError
 
 
 PRIORITY_PREFIXES = [
