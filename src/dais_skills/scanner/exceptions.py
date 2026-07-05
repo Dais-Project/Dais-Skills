@@ -1,8 +1,7 @@
 from dais_skills.exception import SkillException
 
 
-class ScannerError(SkillException):
-    pass
+class ScannerError(SkillException): ...
 
 
 __all__ = ["ScannerError"]

@@ -16,7 +16,7 @@ from .exceptions import DownloaderError
 
 def normalize_skill_path(skill_path: str) -> str:
     normalized = skill_path.strip().strip("/")
-    if not normalized:
+    if len(normalized) == 0:
         raise DownloaderError("Skill path must not be empty")
     if PurePosixPath(normalized).name.lower() == "skill.md":
         normalized = str(PurePosixPath(normalized).parent)

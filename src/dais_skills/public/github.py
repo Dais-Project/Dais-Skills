@@ -8,8 +8,7 @@ API_BASE_URL = "https://api.github.com"
 RAW_BASE_URL = "https://raw.githubusercontent.com"
 USER_AGENT = "dais-skills"
 
-class GitHubError(SkillException):
-    pass
+class GitHubError(SkillException): ...
 
 @dataclass(frozen=True)
 class GitHubRepo:

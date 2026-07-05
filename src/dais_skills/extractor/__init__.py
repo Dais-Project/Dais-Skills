@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import Any, cast
 from .resource import SkillResource, create_from_bytes as create_resource_from_bytes
-from .exceptions import InvalidSkillArchiveError
+from .exceptions import ExtractorException, InvalidSkillArchiveError
 
 
 ZipPath = PurePosixPath
@@ -47,10 +47,8 @@ class SkillParser:
     @staticmethod
     def parse_skill_md(text: str) -> SkillMd:
         def resolve_optional_str(value: Any) -> str | None:
-            if value is None:
-                return None
-            if isinstance(value, str):
-                return value
+            if value is None: return None
+            if isinstance(value, str): return value
             return str(value)
 
         result = frontmatter.loads(text)
@@ -105,4 +103,7 @@ class Skill(SkillMd):
 __all__ = [
     "SkillResource",
     "Skill",
+
+    "ExtractorException",
+    "InvalidSkillArchiveError",
 ]
