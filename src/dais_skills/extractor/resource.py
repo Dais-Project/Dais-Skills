@@ -20,7 +20,7 @@ class BinaryResource(BaseResource):
 type SkillResource = TextResource | BinaryResource
 
 def create_from_bytes(relative: str, content: bytes) -> SkillResource:
-    is_binary = is_binary_string(content)
+    is_binary = is_binary_string(content) or b"\x00" in content
     if is_binary:
         return BinaryResource(relative=relative, content=content)
     else:
