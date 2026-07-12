@@ -68,6 +68,8 @@ asyncio.run(main())
 
 `skill_path` may point at either the skill directory or the `SKILL.md` inside it. Both forms are treated as equivalent.
 
+You can also pass an existing `httpx.AsyncClient` via the optional keyword-only argument `client` to reuse connections across calls.
+
 ### Parse a downloaded skill archive
 
 ```python
@@ -81,6 +83,8 @@ print(skill.name, skill.description)
 print("license:", skill.license)
 print("compatibility:", skill.compatibility)
 print("allowed-tools:", skill.allowed_tools)
+print("metadata:", skill.metadata)
+print("body:", skill.content[:80])
 
 for res in skill.resources:
     if res.type == "text":
@@ -102,14 +106,26 @@ Exported from the top-level package:
 | Name | Description |
 | --- | --- |
 | `scan_repo(repo_url) -> list[ScannedSkill]` | Scan a repository and return a summary of every skill found |
-| `download_skill_zip(repo_url, skill_path) -> bytes` | Download the given skill directory and pack it into a zip |
+| `download_skill_zip(repo_url, skill_path, *, client=None) -> bytes` | Download the given skill directory and pack it into a zip; optional `httpx.AsyncClient` reuse |
 | `Skill.from_zip(zip_file) -> Skill` | Parse a full skill object from a zip file |
-| `ScannedSkill` | Scan-result dataclass |
-| `Skill` | Fully parsed skill dataclass |
+| `ScannedSkill` | Scan-result dataclass (`path`, `name`, `description`) |
+| `Skill` | Fully parsed skill dataclass (`name`, `description`, `content`, optional `license` / `compatibility` / `allowed_tools`, `metadata`, `resources`) |
 | `SkillResource` | `TextResource \| BinaryResource` |
 | `SkillException` | Base exception for this package |
+| `ScannerError` | Base error for scanning failures |
+| `InvalidRepoUrlError` | Invalid repository URL (scanner) |
+| `RepositoryTreeFetchError` | Failed to fetch repository tree |
+| `DownloaderError` | Base error for download failures |
+| `InvalidSkillPathError` | Invalid skill path |
+| `SkillPathNotFoundError` | Skill path not found in repository |
+| `SkillTreeFetchError` | Failed to fetch repository tree for download |
+| `SkillFileDownloadError` | Failed to download a skill file |
+| `ExtractorException` | Base error for archive extraction failures |
+| `InvalidSkillArchiveError` | Invalid skill archive |
+| `SkillRootNotFoundError` | Skill root not found in archive |
+| `SkillMdNotFoundError` | `SKILL.md` not found in archive |
 
-Submodule-specific exceptions (`ScannerError`, `DownloaderError`, `InvalidSkillArchiveError`, `GitHubError`) can be imported from their respective submodules.
+GitHub client exceptions (`GitHubError`, `InvalidGitHubUrlError`, `GitHubApiError`, `GitHubTreeFetchError`, `GitHubBlobFetchError`) are available from `dais_skills.public`.
 
 ## Development
 

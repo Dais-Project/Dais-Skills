@@ -68,6 +68,8 @@ asyncio.run(main())
 
 `skill_path` 可以指向 skill 目录，也可以直接指向该目录下的 `SKILL.md`——两者等价。
 
+也可通过仅关键字参数 `client` 传入已有的 `httpx.AsyncClient`，以便跨调用复用连接。
+
 ### 解析下载后的 skill 压缩包
 
 ```python
@@ -81,6 +83,8 @@ print(skill.name, skill.description)
 print("license:", skill.license)
 print("compatibility:", skill.compatibility)
 print("allowed-tools:", skill.allowed_tools)
+print("metadata:", skill.metadata)
+print("body:", skill.content[:80])
 
 for res in skill.resources:
     if res.type == "text":
@@ -89,7 +93,7 @@ for res in skill.resources:
         print("[bin] ", res.relative, len(res.content))
 ```
 
-`Skill` 会：
+`Skill.from_zip` 会：
 
 1. 定位 zip 中的 skill 根目录（第一层包含 `SKILL.md` 的目录，或存档根）
 2. 解析 `SKILL.md` 的 frontmatter 与正文
@@ -102,14 +106,26 @@ for res in skill.resources:
 | 名称 | 说明 |
 | --- | --- |
 | `scan_repo(repo_url) -> list[ScannedSkill]` | 扫描仓库并返回其中所有 skill 摘要 |
-| `download_skill_zip(repo_url, skill_path) -> bytes` | 下载指定 skill 目录并打包为 zip |
+| `download_skill_zip(repo_url, skill_path, *, client=None) -> bytes` | 下载指定 skill 目录并打包为 zip；可选复用 `httpx.AsyncClient` |
 | `Skill.from_zip(zip_file) -> Skill` | 从 zip 文件解析完整的 skill 对象 |
-| `ScannedSkill` | 扫描结果 dataclass |
-| `Skill` | 解析后的完整 skill dataclass |
+| `ScannedSkill` | 扫描结果 dataclass（`path`、`name`、`description`） |
+| `Skill` | 解析后的完整 skill dataclass（`name`、`description`、`content`，可选 `license` / `compatibility` / `allowed_tools`，以及 `metadata`、`resources`） |
 | `SkillResource` | `TextResource \| BinaryResource` |
 | `SkillException` | 包内异常基类 |
+| `ScannerError` | 扫描失败的基类异常 |
+| `InvalidRepoUrlError` | 无效的仓库 URL（scanner） |
+| `RepositoryTreeFetchError` | 获取仓库树失败 |
+| `DownloaderError` | 下载失败的基类异常 |
+| `InvalidSkillPathError` | 无效的 skill 路径 |
+| `SkillPathNotFoundError` | 仓库中找不到指定 skill 路径 |
+| `SkillTreeFetchError` | 下载时获取仓库树失败 |
+| `SkillFileDownloadError` | 下载 skill 文件失败 |
+| `ExtractorException` | 压缩包解析失败的基类异常 |
+| `InvalidSkillArchiveError` | 无效的 skill 压缩包 |
+| `SkillRootNotFoundError` | 压缩包中找不到 skill 根目录 |
+| `SkillMdNotFoundError` | 压缩包中找不到 `SKILL.md` |
 
-各子模块自身的异常类型（`ScannerError`、`DownloaderError`、`InvalidSkillArchiveError`、`GitHubError`）可从对应子模块导入。
+GitHub 客户端相关异常（`GitHubError`、`InvalidGitHubUrlError`、`GitHubApiError`、`GitHubTreeFetchError`、`GitHubBlobFetchError`）可从 `dais_skills.public` 导入。
 
 ## 开发
 
@@ -126,3 +142,4 @@ uv run pytest -m smoke     # 运行访问真实网络的端到端冒烟测试
 - [x] skill 压缩包解析
 - [ ] GitLab 仓库支持
 - [ ] 任意远程 Git 仓库支持
+- [ ] S3 等自定义源

@@ -1,6 +1,6 @@
 [project]
 name = "dais-skills"
-version = "0.1.4"
+version = "0.1.5"
 description = "A Python package for scanning and downloading agent skills from specified GitHub repositories."
 readme = "README.md"
 authors = [{ name = "BHznJNs", email = "bhznjns@outlook.com" }]

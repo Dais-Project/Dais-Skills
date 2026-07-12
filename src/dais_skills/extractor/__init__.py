@@ -93,8 +93,7 @@ class Skill(SkillMd):
             if info.is_dir(): continue
             info_path = ZipPath(info.filename)
             if info_path == skill_md: continue # skip SKILL.md
-            if skill_root != ZipPath(".") and skill_root not in {info_path, *info_path.parents}:
-                continue
+            if not info_path.is_relative_to(skill_root): continue
 
             relative = info_path.relative_to(skill_root)
             content_bytes = zip_file.read(info.filename)
