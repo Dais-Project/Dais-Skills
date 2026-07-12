@@ -1,6 +1,6 @@
 import httpx
 
-from .exceptions import ScannerError
+from .exceptions import InvalidRepoUrlError, RepositoryTreeFetchError, ScannerError
 from .github import GitHubScanner, ScannedSkill
 
 
@@ -10,4 +10,10 @@ async def scan_repo(repo_url: str) -> list[ScannedSkill]:
         return await scanner.scan_repo(repo_url)
 
 
-__all__ = ["scan_repo", "ScannedSkill", "ScannerError"]
+__all__ = [
+    "scan_repo",
+    "ScannedSkill",
+    "ScannerError",
+    "InvalidRepoUrlError",
+    "RepositoryTreeFetchError",
+]

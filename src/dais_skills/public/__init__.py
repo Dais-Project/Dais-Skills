@@ -3,6 +3,10 @@ from .github import (
     GitHubClient,
     GitHubRepo,
     GitHubError,
+    InvalidGitHubUrlError,
+    GitHubApiError,
+    GitHubTreeFetchError,
+    GitHubBlobFetchError,
 )
 
 __all__ = [
@@ -10,4 +14,8 @@ __all__ = [
     "GitHubClient",
     "GitHubError",
     "GitHubRepo",
+    "InvalidGitHubUrlError",
+    "GitHubApiError",
+    "GitHubTreeFetchError",
+    "GitHubBlobFetchError",
 ]

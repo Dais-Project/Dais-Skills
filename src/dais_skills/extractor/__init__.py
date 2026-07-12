@@ -4,7 +4,12 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import Any, cast
 from .resource import SkillResource, create_from_bytes as create_resource_from_bytes
-from .exceptions import ExtractorException, InvalidSkillArchiveError
+from .exceptions import (
+    ExtractorException,
+    InvalidSkillArchiveError,
+    SkillMdNotFoundError,
+    SkillRootNotFoundError,
+)
 
 
 ZipPath = PurePosixPath
@@ -74,11 +79,11 @@ class Skill(SkillMd):
 
         skill_root = SkillParser.find_skill_root(paths)
         if skill_root is None:
-            raise InvalidSkillArchiveError("Skill root not found")
+            raise SkillRootNotFoundError()
 
         skill_md = SkillParser.find_skill_md(paths, skill_root)
         if skill_md is None:
-            raise InvalidSkillArchiveError("SKILL.md not found")
+            raise SkillMdNotFoundError()
 
         skill_md_text = zip_file.read(str(skill_md)).decode("utf-8-sig", errors="replace")
         skill = SkillParser.parse_skill_md(skill_md_text)
@@ -106,4 +111,6 @@ __all__ = [
 
     "ExtractorException",
     "InvalidSkillArchiveError",
+    "SkillRootNotFoundError",
+    "SkillMdNotFoundError",
 ]

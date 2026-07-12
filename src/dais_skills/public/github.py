@@ -8,7 +8,44 @@ API_BASE_URL = "https://api.github.com"
 RAW_BASE_URL = "https://raw.githubusercontent.com"
 USER_AGENT = "dais-skills"
 
-class GitHubError(SkillException): ...
+
+class GitHubError(SkillException):
+    """Base error for GitHub API / URL interactions."""
+
+
+class InvalidGitHubUrlError(GitHubError):
+    def __init__(self, url: str):
+        self.url = url
+        super().__init__(f"Unsupported GitHub repository URL: {url}")
+
+
+class GitHubApiError(GitHubError):
+    def __init__(self, api_path: str, status_code: int):
+        self.api_path = api_path
+        self.status_code = status_code
+        super().__init__(
+            f"GitHub API request failed: HTTP {status_code} for {api_path}"
+        )
+
+
+class GitHubTreeFetchError(GitHubError):
+    def __init__(self, owner_repo: str, tried_refs: list[str], cause: Exception | None = None):
+        self.owner_repo = owner_repo
+        self.tried_refs = list(tried_refs)
+        self.cause = cause
+        refs = ", ".join(tried_refs) if tried_refs else "(none)"
+        message = f"Unable to fetch repository tree for {owner_repo} (tried refs: {refs})"
+        if cause is not None:
+            message = f"{message}: {cause}"
+        super().__init__(message)
+
+
+class GitHubBlobFetchError(GitHubError):
+    def __init__(self, path: str, status_code: int):
+        self.path = path
+        self.status_code = status_code
+        super().__init__(f"Failed to download file {path}: HTTP {status_code}")
+
 
 @dataclass(frozen=True)
 class GitHubRepo:
@@ -24,11 +61,11 @@ class GitHubRepo:
     def from_url(cls, repo_url: str) -> "GitHubRepo":
         parsed = urlparse(repo_url.strip())
         if parsed.scheme not in {"http", "https"} or parsed.hostname != "github.com":
-            raise GitHubError(f"Unsupported GitHub repository URL: {repo_url}")
+            raise InvalidGitHubUrlError(repo_url)
 
         parts = [part for part in parsed.path.split("/") if part]
         if len(parts) < 2:
-            raise GitHubError(f"Unsupported GitHub repository URL: {repo_url}")
+            raise InvalidGitHubUrlError(repo_url)
 
         owner = parts[0]
         repo = parts[1].removesuffix(".git")
@@ -72,9 +109,11 @@ class GitHubClient:
             ]
             return tree_ref, blobs
 
-        if last_error is not None:
-            raise last_error
-        raise GitHubError(f"Unable to fetch repository tree for {repo.owner_repo}")
+        raise GitHubTreeFetchError(
+            owner_repo=repo.owner_repo,
+            tried_refs=[ref for ref in refs_to_try if ref is not None],
+            cause=last_error,
+        ) from last_error
 
     async def fetch_blob(self, repo: GitHubRepo, ref: str, path: str) -> bytes:
         url = f"{RAW_BASE_URL}/{repo.owner}/{repo.repo}/{ref}/{path}"
@@ -82,9 +121,7 @@ class GitHubClient:
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            raise GitHubError(
-                f"Failed to download file {path}: HTTP {exc.response.status_code}"
-            ) from exc
+            raise GitHubBlobFetchError(path, exc.response.status_code) from exc
         return response.content
 
     async def fetch_text(self, repo: GitHubRepo, ref: str, path: str) -> str:
@@ -102,13 +139,17 @@ class GitHubClient:
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            raise GitHubError(
-                f"GitHub API request failed: HTTP {exc.response.status_code}"
-            ) from exc
+            raise GitHubApiError(path, exc.response.status_code) from exc
         return response.json()
 
 
 __all__ = [
+    "GitHubError",
+    "InvalidGitHubUrlError",
+    "GitHubApiError",
+    "GitHubTreeFetchError",
+    "GitHubBlobFetchError",
+
     "GitHubRepo",
     "GitHubBlob",
     "GitHubClient",

@@ -11,7 +11,7 @@ from dais_skills.public.github import (
     GitHubRepo,
 )
 
-from .exceptions import ScannerError
+from .exceptions import InvalidRepoUrlError, RepositoryTreeFetchError, ScannerError
 
 
 PRIORITY_PREFIXES = [
@@ -60,11 +60,15 @@ class GitHubScanner:
         self._github = GitHubClient(client)
 
     async def scan_repo(self, repo_url: str) -> list[ScannedSkill]:
-        repo = GitHubRepo.from_url(repo_url)
+        try:
+            repo = GitHubRepo.from_url(repo_url)
+        except GitHubError as exc:
+            raise InvalidRepoUrlError(repo_url, str(exc)) from exc
+
         try:
             tree_ref, blobs = await self._github.fetch_tree(repo)
         except GitHubError as exc:
-            raise ScannerError(str(exc)) from exc
+            raise RepositoryTreeFetchError(str(exc)) from exc
 
         skill_md_paths = find_skill_md_paths(blobs)
 
@@ -152,6 +156,8 @@ def parse_skill_from_content(content: str, repo_path: str) -> ScannedSkill | Non
 
 __all__ = [
     "ScannerError",
+    "InvalidRepoUrlError",
+    "RepositoryTreeFetchError",
     "ScannedSkill",
     "GitHubScanner",
     "find_skill_md_paths",

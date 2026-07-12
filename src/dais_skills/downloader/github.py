@@ -1,45 +1,52 @@
 import io
 import zipfile
-from pathlib import PurePosixPath
-
 import httpx
-
+from pathlib import PurePosixPath
 from dais_skills.public.github import (
     GitHubBlob,
     GitHubClient,
     GitHubError,
     GitHubRepo,
 )
-
-from .exceptions import DownloaderError
+from .exceptions import (
+    DownloaderError,
+    InvalidRepoUrlError,
+    InvalidSkillPathError,
+    SkillFileDownloadError,
+    SkillPathNotFoundError,
+    SkillTreeFetchError,
+)
 
 
 def normalize_skill_path(skill_path: str) -> str:
     normalized = skill_path.strip().strip("/")
     if len(normalized) == 0:
-        raise DownloaderError("Skill path must not be empty")
+        raise InvalidSkillPathError(skill_path, "Skill path must not be empty")
     if PurePosixPath(normalized).name.lower() == "skill.md":
         normalized = str(PurePosixPath(normalized).parent)
     if normalized in {"", "."}:
-        raise DownloaderError("Skill path must point to a skill directory")
+        raise InvalidSkillPathError(skill_path, "Skill path must point to a skill directory")
     return normalized
-
 
 class GitHubDownloader:
     def __init__(self, client: httpx.AsyncClient):
         self._github = GitHubClient(client)
 
     async def download_skill_zip(self, repo_url: str, skill_path: str) -> bytes:
-        repo = GitHubRepo.from_url(repo_url)
+        try:
+            repo = GitHubRepo.from_url(repo_url)
+        except GitHubError as exc:
+            raise InvalidRepoUrlError(repo_url, str(exc)) from exc
+
         skill_dir = normalize_skill_path(skill_path)
         try:
             tree_ref, blobs = await self._github.fetch_tree(repo)
         except GitHubError as exc:
-            raise DownloaderError(str(exc)) from exc
+            raise SkillTreeFetchError(str(exc)) from exc
 
         skill_blobs = filter_skill_blobs(blobs, skill_dir)
         if not skill_blobs:
-            raise DownloaderError(f"Skill path not found: {skill_dir}")
+            raise SkillPathNotFoundError(skill_dir)
 
         archive_root = PurePosixPath(skill_dir).name or "skill"
         zip_buffer = io.BytesIO()
@@ -48,7 +55,7 @@ class GitHubDownloader:
                 try:
                     content = await self._github.fetch_blob(repo, tree_ref, blob.path)
                 except GitHubError as exc:
-                    raise DownloaderError(str(exc)) from exc
+                    raise SkillFileDownloadError(blob.path, str(exc)) from exc
                 relative = PurePosixPath(blob.path).relative_to(PurePosixPath(skill_dir))
                 archive_path = str(PurePosixPath(archive_root) / relative)
                 zf.writestr(archive_path, content)
@@ -70,9 +77,12 @@ def filter_skill_blobs(blobs: list[GitHubBlob], skill_dir: str) -> list[GitHubBl
 
 __all__ = [
     "DownloaderError",
-    "GitHubBlob",
-    "GitHubDownloader",
-    "GitHubRepo",
+    "InvalidRepoUrlError",
+    "InvalidSkillPathError",
+    "SkillPathNotFoundError",
+    "SkillTreeFetchError",
+    "SkillFileDownloadError",
+
     "filter_skill_blobs",
     "normalize_skill_path",
 ]
